@@ -2,6 +2,7 @@ from bs4 import BeautifulSoup
 import requests
 import json
 import os
+import csv
 
 
 def main_scr():
@@ -16,12 +17,16 @@ def main_scr():
         if x == 'y' or x == 'Y':
             print("")
             os.remove('data/data.json')
+            os.remove('data/data.csv')
         else:
             return -1
     # get all list link
     main_div = soup.find('div', class_='al-li')
 
-    # more button click
+    # more button
+    more_btns = main_div.find_all('a', class_='showClass')
+    for mb in more_btns:
+        mb.get('onclik')
     # for div in main_div:
 
     all_link = main_div.find_all('a', class_='ab1')
@@ -33,6 +38,7 @@ def main_scr():
 
     all_data = []
     for c in all_complanies_link:
+        print(c)
         if c.split('name=')[1][0:2] != 'TB':
             data = single_companies(url=c)
             all_data.append(data)
@@ -40,10 +46,11 @@ def main_scr():
             data = tb_type_company(url=c)
             all_data.append(data)
 
-    # count = 378
-    # while count > 350 and count < 500:
+    # count = 501
+    # while count > 500 and count < 550:
     #     c = all_complanies_link[count]
     #     print(count)
+    #     print(c)
     #     if c.split('name=')[1][0:2] != 'TB':
     #         data = single_companies(url=c)
     #         all_data.append(data)
@@ -53,11 +60,29 @@ def main_scr():
     #     count += 1
 
     # json file write
+    create_json(all_data=all_data)
+    create_csv(all_data=all_data)
 
+    print("-----------------")
+    print("Done")
+
+
+def create_json(all_data):
     with open('data/data.json', 'w', encoding='utf-8') as f:
         json.dump(all_data, f, ensure_ascii=False, indent=4)
+    print("JSON dataset created")
 
-    print("Done")
+
+def create_csv(all_data):
+    a = all_data[0]
+    with open('data/data.csv', 'a') as f:
+        w = csv.DictWriter(f, a.keys())
+        w.writeheader()
+    for i in all_data:
+        with open('data/data.csv', 'a') as f:
+            w = csv.DictWriter(f, i.keys())
+            w.writerow(i)
+    print("CSV dataset created")
 
 
 def string_handle(s):
@@ -191,6 +216,7 @@ def single_companies(url: str):
         "isin": "N/A",
 
         "last_trading_price": last_trading_price,
+        "last_trading_yield": "N/A",
         "closing_price": closing_price,
         "last_update": last_update,
         "days_range": days_range,
@@ -204,6 +230,7 @@ def single_companies(url: str):
         "days_trade": days_trade,
         "yesterday_closing_price": yesterday_closing_price,
         "market_capitalization": market_capitalization,
+        "remaining_maturity": "N/A",
 
         "authorized_capital": authorized_capital,
         "debut_trading_date": debut_trading_date,
@@ -262,7 +289,6 @@ def tb_type_company(url: str):
     main_div = soup.find('div', class_='row')
     all_table_body = soup.find_all('div', class_='table-responsive')
 
-    company_name = 'N/A'
     security_name = string_handle(main_div.find('h2', class_='topBodyHead').text.split(':')[1])
     code_obj = main_div.find_all('tr', class_='alt')
     trading_code = string_handle(code_obj[0].find_all('th')[0].text.split(':')[1])
@@ -271,6 +297,7 @@ def tb_type_company(url: str):
 
     # market information table
     last_trading_price = string_handle(all_table_body[1].find_all('td')[0].text)
+    last_trading_yield = string_handle(all_table_body[1].find_all('td')[2].text)
     closing_price = string_handle(all_table_body[1].find_all('td')[1].text)
     last_update = string_handle(all_table_body[1].find_all('td')[4].text)
     days_range = string_handle(all_table_body[1].find_all('td')[3].text)
@@ -284,11 +311,9 @@ def tb_type_company(url: str):
     days_trade = string_handle(all_table_body[1].find_all('td')[11].text)
     yesterday_closing_price = string_handle(all_table_body[1].find_all('td')[14].text)
     market_capitalization = string_handle(all_table_body[1].find_all('td')[13].text)
+    remaining_maturity = string_handle(all_table_body[1].find_all('td')[15].text)
 
     # basic information
-    # authorized_capital = string_handle(all_table_body[2].find_all('td')[0].text)
-    # debut_trading_date = string_handle(all_table_body[2].find_all('td')[1].text)
-    # paid_up_capital = string_handle(all_table_body[2].find_all('td')[2].text)
     type_of_instrument = string_handle(all_table_body[2].find_all('td')[1].text)
     face_par_value = string_handle(all_table_body[2].find_all('td')[4].text)
     market_lot = string_handle(all_table_body[2].find_all('td')[5].text)
@@ -303,7 +328,7 @@ def tb_type_company(url: str):
     web = string_handle(all_table_body[-2].find_all('td')[3].text)
 
     return {
-        "company_name": company_name,
+        "company_name": "N/A",
         "security_name": security_name,
         "company_url": company_url,
         "trading_code": trading_code,
@@ -311,6 +336,7 @@ def tb_type_company(url: str):
         "isin": isin,
 
         "last_trading_price": last_trading_price,
+        "last_trading_yield": last_trading_yield,
         "closing_price": closing_price,
         "last_update": last_update,
         "days_range": days_range,
@@ -324,6 +350,7 @@ def tb_type_company(url: str):
         "days_trade": days_trade,
         "yesterday_closing_price": yesterday_closing_price,
         "market_capitalization": market_capitalization,
+        "remaining_maturity": remaining_maturity,
 
         "authorized_capital": "N/A",
         "debut_trading_date": "N/A",
