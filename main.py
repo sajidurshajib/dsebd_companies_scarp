@@ -6,13 +6,17 @@ import csv
 
 
 def main_scr():
+    """
+    This is the main function of this script. 
+    This function grab all companies url as array then 
+    use other function for srapping.
+    """
     html_text = requests.get('https://www.dsebd.org/company_listing.php').text
     soup = BeautifulSoup(html_text, 'lxml')
 
     # data sets exist check
     if os.path.isfile("data/data.json"):
-        print("Dataset exist, You want to delete previous dataset? (y/Y)")
-        x = input()
+        x = input("Dataset exist, You want to delete previous dataset? (y/Y)")
 
         if x == 'y' or x == 'Y':
             print("")
@@ -27,8 +31,8 @@ def main_scr():
     more_btns = main_div.find_all('a', class_='showClass')
     for mb in more_btns:
         mb.get('onclik')
-    # for div in main_div:
 
+    # main_div:
     all_link = main_div.find_all('a', class_='ab1')
 
     all_complanies_link = []
@@ -38,26 +42,13 @@ def main_scr():
 
     all_data = []
     for c in all_complanies_link:
-        print(c)
+        print('https://www.dsebd.org'+c)
         if c.split('name=')[1][0:2] != 'TB':
             data = single_companies(url=c)
             all_data.append(data)
         else:
             data = tb_type_company(url=c)
             all_data.append(data)
-
-    # count = 501
-    # while count > 500 and count < 550:
-    #     c = all_complanies_link[count]
-    #     print(count)
-    #     print(c)
-    #     if c.split('name=')[1][0:2] != 'TB':
-    #         data = single_companies(url=c)
-    #         all_data.append(data)
-    #     else:
-    #         data = tb_type_company(url=c)
-    #         all_data.append(data)
-    #     count += 1
 
     # json file write
     create_json(all_data=all_data)
@@ -68,12 +59,18 @@ def main_scr():
 
 
 def create_json(all_data):
+    """
+    This function take dictionay type array and make json dataset
+    """
     with open('data/data.json', 'w', encoding='utf-8') as f:
         json.dump(all_data, f, ensure_ascii=False, indent=4)
     print("JSON dataset created")
 
 
 def create_csv(all_data):
+    """
+    This function take dictionay type array and make csv dataset
+    """
     a = all_data[0]
     with open('data/data.csv', 'a') as f:
         w = csv.DictWriter(f, a.keys())
@@ -86,7 +83,12 @@ def create_csv(all_data):
 
 
 def string_handle(s):
-    """ this function handle empty value from a string """
+    """ 
+    this function handle empty value from a string.
+    parameter s take string and for empty value set N/A 
+    and strip the string 
+    """
+
     if len(s) == 0:
         return 'N/A'
     elif s == '-':
@@ -96,6 +98,9 @@ def string_handle(s):
 
 
 def single_companies(url: str):
+    """
+    This function parameter url take company url then scrap the data and return as dictionary.
+    """
     base_url = 'https://www.dsebd.org'
     company_url = base_url+'/'+url
 
@@ -205,8 +210,6 @@ def single_companies(url: str):
     else:
         remarks = 'N/A'
 
-    print(company_url)
-
     return {
         "company_name": company_name,
         "security_name": "N/A",
@@ -232,6 +235,16 @@ def single_companies(url: str):
         "market_capitalization": market_capitalization,
         "remaining_maturity": "N/A",
 
+        "issuer": "N/A",
+        "tenure": "N/A",
+        "issue_date": "N/A",
+        "cupon_rate": "N/A",
+        "debut_trading_date_basic": "N/A",
+        "cupon_frequency": "N/A",
+        "maturity_date": "N/A",
+        "security_catagory": "N/A",
+        "electronic_share_basic": "N/A",
+        "year_basis": "N/A",
         "authorized_capital": authorized_capital,
         "debut_trading_date": debut_trading_date,
         "paid_up_capital": paid_up_capital,
@@ -280,6 +293,10 @@ def single_companies(url: str):
 
 
 def tb_type_company(url: str):
+    """
+    This function for security_name type companies. 
+    Url parameter take company url then scrap the data and return as dictionary.
+    """
     base_url = 'https://www.dsebd.org'
     company_url = base_url+'/'+url
 
@@ -314,6 +331,16 @@ def tb_type_company(url: str):
     remaining_maturity = string_handle(all_table_body[1].find_all('td')[15].text)
 
     # basic information
+    issuer = string_handle(all_table_body[2].find_all('td')[0].text)
+    tenure = string_handle(all_table_body[2].find_all('td')[6].text)
+    issue_date = string_handle(all_table_body[2].find_all('td')[7].text)
+    cupon_rate = string_handle(all_table_body[2].find_all('td')[8].text)
+    debut_trading_date_basic = string_handle(all_table_body[2].find_all('td')[9].text)
+    cupon_frequency = string_handle(all_table_body[2].find_all('td')[10].text)
+    maturity_date = string_handle(all_table_body[2].find_all('td')[11].text)
+    security_catagory = string_handle(all_table_body[2].find_all('td')[12].text)
+    electronic_share_basic = string_handle(all_table_body[2].find_all('td')[13].text)
+    year_basis = string_handle(all_table_body[2].find_all('td')[14].text)
     type_of_instrument = string_handle(all_table_body[2].find_all('td')[1].text)
     face_par_value = string_handle(all_table_body[2].find_all('td')[4].text)
     market_lot = string_handle(all_table_body[2].find_all('td')[5].text)
@@ -352,6 +379,16 @@ def tb_type_company(url: str):
         "market_capitalization": market_capitalization,
         "remaining_maturity": remaining_maturity,
 
+        "issuer": issuer,
+        "tenure": tenure,
+        "issue_date": issue_date,
+        "cupon_rate": cupon_rate,
+        "debut_trading_date_basic": debut_trading_date_basic,
+        "cupon_frequency": cupon_frequency,
+        "maturity_date": maturity_date,
+        "security_catagory": security_catagory,
+        "electronic_share_basic": electronic_share_basic,
+        "year_basis": year_basis,
         "authorized_capital": "N/A",
         "debut_trading_date": "N/A",
         "paid_up_capital": "N/A",
