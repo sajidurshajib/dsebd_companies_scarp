@@ -8,20 +8,42 @@ import aiohttp
 
 
 def main_scr():
+<<<<<<< HEAD
     html_text = asyncio.run(get_url_from_text('https://www.dsebd.org/company_listing.php'))
 
     soup = BeautifulSoup(html_text, 'lxml')
 
     # data sets exist check
     dataset_create_with_check()
+=======
+    """
+    This is the main function of this script. 
+    This function grab all companies url as array then 
+    use other function for srapping.
+    """
+    html_text = requests.get('https://www.dsebd.org/company_listing.php').text
+    soup = BeautifulSoup(html_text, 'lxml')
+
+    # data sets exist check
+    if os.path.isfile("data/data.json"):
+        x = input("Dataset exist, You want to delete previous dataset? (y/Y)")
+>>>>>>> 961a03fbdd8d66f6ed9ab0d65592ef27097c1da8
 
     # get all list link
     main_div = soup.find('div', class_='al-li')
 
     # more button
+<<<<<<< HEAD
     more_btn(main_div_obj=main_div)
 
     # for div in main_div:
+=======
+    more_btns = main_div.find_all('a', class_='showClass')
+    for mb in more_btns:
+        mb.get('onclik')
+
+    # main_div:
+>>>>>>> 961a03fbdd8d66f6ed9ab0d65592ef27097c1da8
     all_link = main_div.find_all('a', class_='ab1')
 
     all_complanies_link = []
@@ -29,7 +51,19 @@ def main_scr():
     for link in all_link:
         all_complanies_link.append(link['href'])
 
+<<<<<<< HEAD
     all_data = asyncio.run(scrap_urls(urls=all_complanies_link))
+=======
+    all_data = []
+    for c in all_complanies_link:
+        print('https://www.dsebd.org'+c)
+        if c.split('name=')[1][0:2] != 'TB':
+            data = single_companies(url=c)
+            all_data.append(data)
+        else:
+            data = tb_type_company(url=c)
+            all_data.append(data)
+>>>>>>> 961a03fbdd8d66f6ed9ab0d65592ef27097c1da8
 
     # json file write
     create_json(all_data=all_data)
@@ -85,14 +119,26 @@ def dataset_create_with_check():
 
 
 def create_json(all_data):
+<<<<<<< HEAD
     """ get all data and create json output file """
+=======
+    """
+    This function take dictionay type array and make json dataset
+    """
+>>>>>>> 961a03fbdd8d66f6ed9ab0d65592ef27097c1da8
     with open('data/data.json', 'w', encoding='utf-8') as f:
         json.dump(all_data, f, ensure_ascii=False, indent=4)
     print("JSON dataset created")
 
 
 def create_csv(all_data):
+<<<<<<< HEAD
     """ get all data and create csv joutput file """
+=======
+    """
+    This function take dictionay type array and make csv dataset
+    """
+>>>>>>> 961a03fbdd8d66f6ed9ab0d65592ef27097c1da8
     a = all_data[0]
     with open('data/data.csv', 'a') as f:
         w = csv.DictWriter(f, a.keys())
@@ -111,7 +157,12 @@ def more_btn(main_div_obj):
 
 
 def string_handle(s):
-    """ this function handle empty value from a string """
+    """ 
+    this function handle empty value from a string.
+    parameter s take string and for empty value set N/A 
+    and strip the string 
+    """
+
     if len(s) == 0:
         return 'N/A'
     elif s == '-':
@@ -120,8 +171,17 @@ def string_handle(s):
         return s.strip()
 
 
+<<<<<<< HEAD
 def single_companies(html_text, company_url):
     print(company_url)
+=======
+def single_companies(url: str):
+    """
+    This function parameter url take company url then scrap the data and return as dictionary.
+    """
+    base_url = 'https://www.dsebd.org'
+    company_url = base_url+'/'+url
+>>>>>>> 961a03fbdd8d66f6ed9ab0d65592ef27097c1da8
 
     soup = BeautifulSoup(html_text, 'lxml')
 
@@ -253,6 +313,16 @@ def single_companies(html_text, company_url):
         "market_capitalization": market_capitalization,
         "remaining_maturity": "N/A",
 
+        "issuer": "N/A",
+        "tenure": "N/A",
+        "issue_date": "N/A",
+        "cupon_rate": "N/A",
+        "debut_trading_date_basic": "N/A",
+        "cupon_frequency": "N/A",
+        "maturity_date": "N/A",
+        "security_catagory": "N/A",
+        "electronic_share_basic": "N/A",
+        "year_basis": "N/A",
         "authorized_capital": authorized_capital,
         "debut_trading_date": debut_trading_date,
         "paid_up_capital": paid_up_capital,
@@ -300,12 +370,22 @@ def single_companies(html_text, company_url):
     }
 
 
+<<<<<<< HEAD
 def tb_type_company(html_text, company_url):
     # base_url = 'https://www.dsebd.org'
     # company_url = base_url+'/'+url
 
     # # html_text = requests.get(company_url).text
     # html_text = asyncio.run(get_url_from_text(url=company_url))
+=======
+def tb_type_company(url: str):
+    """
+    This function for security_name type companies. 
+    Url parameter take company url then scrap the data and return as dictionary.
+    """
+    base_url = 'https://www.dsebd.org'
+    company_url = base_url+'/'+url
+>>>>>>> 961a03fbdd8d66f6ed9ab0d65592ef27097c1da8
 
     soup = BeautifulSoup(html_text, 'lxml')
 
@@ -337,6 +417,16 @@ def tb_type_company(html_text, company_url):
     remaining_maturity = string_handle(all_table_body[1].find_all('td')[15].text)
 
     # basic information
+    issuer = string_handle(all_table_body[2].find_all('td')[0].text)
+    tenure = string_handle(all_table_body[2].find_all('td')[6].text)
+    issue_date = string_handle(all_table_body[2].find_all('td')[7].text)
+    cupon_rate = string_handle(all_table_body[2].find_all('td')[8].text)
+    debut_trading_date_basic = string_handle(all_table_body[2].find_all('td')[9].text)
+    cupon_frequency = string_handle(all_table_body[2].find_all('td')[10].text)
+    maturity_date = string_handle(all_table_body[2].find_all('td')[11].text)
+    security_catagory = string_handle(all_table_body[2].find_all('td')[12].text)
+    electronic_share_basic = string_handle(all_table_body[2].find_all('td')[13].text)
+    year_basis = string_handle(all_table_body[2].find_all('td')[14].text)
     type_of_instrument = string_handle(all_table_body[2].find_all('td')[1].text)
     face_par_value = string_handle(all_table_body[2].find_all('td')[4].text)
     market_lot = string_handle(all_table_body[2].find_all('td')[5].text)
@@ -375,6 +465,16 @@ def tb_type_company(html_text, company_url):
         "market_capitalization": market_capitalization,
         "remaining_maturity": remaining_maturity,
 
+        "issuer": issuer,
+        "tenure": tenure,
+        "issue_date": issue_date,
+        "cupon_rate": cupon_rate,
+        "debut_trading_date_basic": debut_trading_date_basic,
+        "cupon_frequency": cupon_frequency,
+        "maturity_date": maturity_date,
+        "security_catagory": security_catagory,
+        "electronic_share_basic": electronic_share_basic,
+        "year_basis": year_basis,
         "authorized_capital": "N/A",
         "debut_trading_date": "N/A",
         "paid_up_capital": "N/A",
