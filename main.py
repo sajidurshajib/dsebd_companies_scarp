@@ -3,13 +3,75 @@ import requests
 import json
 import os
 import csv
+import asyncio
+import aiohttp
 
 
 def main_scr():
-    html_text = requests.get('https://www.dsebd.org/company_listing.php').text
+    html_text = asyncio.run(get_url_from_text('https://www.dsebd.org/company_listing.php'))
+
     soup = BeautifulSoup(html_text, 'lxml')
 
     # data sets exist check
+    dataset_create_with_check()
+
+    # get all list link
+    main_div = soup.find('div', class_='al-li')
+
+    # more button
+    more_btn(main_div_obj=main_div)
+
+    # for div in main_div:
+    all_link = main_div.find_all('a', class_='ab1')
+
+    all_complanies_link = []
+
+    for link in all_link:
+        all_complanies_link.append(link['href'])
+
+    all_data = asyncio.run(scrap_urls(urls=all_complanies_link))
+
+    # json file write
+    create_json(all_data=all_data)
+    create_csv(all_data=all_data)
+
+    print("-----------------")
+    print("Done")
+
+
+async def fetch(session, url):
+    base_url = 'https://www.dsebd.org'
+    company_url = base_url+'/'+url
+
+    async with session.get(company_url) as response:
+        return await response.text()
+
+
+async def fetch_and_parse(session, url):
+    html = await fetch(session, url)
+
+    if url[0:2] != 'TB':
+        data = single_companies(html_text=html, company_url='https://www.dsebd.org/'+url)
+    else:
+        data = tb_type_company(html_text=html, company_url='https://www.dsebd.org/'+url)
+
+    return data
+
+
+async def scrap_urls(urls):
+    connector = aiohttp.TCPConnector(limit=500)
+    async with aiohttp.ClientSession(connector=connector) as session:
+        return await asyncio.gather(*(fetch_and_parse(session, url) for url in urls))
+
+
+async def get_url_from_text(url: str):
+    async with aiohttp.ClientSession() as session:
+        response = await session.get(url)
+        return await response.text()
+
+
+def dataset_create_with_check():
+    """ data set create with check """
     if os.path.isfile("data/data.json"):
         print("Dataset exist, You want to delete previous dataset? (y/Y)")
         x = input()
@@ -20,60 +82,17 @@ def main_scr():
             os.remove('data/data.csv')
         else:
             return -1
-    # get all list link
-    main_div = soup.find('div', class_='al-li')
-
-    # more button
-    more_btns = main_div.find_all('a', class_='showClass')
-    for mb in more_btns:
-        mb.get('onclik')
-    # for div in main_div:
-
-    all_link = main_div.find_all('a', class_='ab1')
-
-    all_complanies_link = []
-
-    for link in all_link:
-        all_complanies_link.append(link['href'])
-
-    all_data = []
-    for c in all_complanies_link:
-        print(c)
-        if c.split('name=')[1][0:2] != 'TB':
-            data = single_companies(url=c)
-            all_data.append(data)
-        else:
-            data = tb_type_company(url=c)
-            all_data.append(data)
-
-    # count = 501
-    # while count > 500 and count < 550:
-    #     c = all_complanies_link[count]
-    #     print(count)
-    #     print(c)
-    #     if c.split('name=')[1][0:2] != 'TB':
-    #         data = single_companies(url=c)
-    #         all_data.append(data)
-    #     else:
-    #         data = tb_type_company(url=c)
-    #         all_data.append(data)
-    #     count += 1
-
-    # json file write
-    create_json(all_data=all_data)
-    create_csv(all_data=all_data)
-
-    print("-----------------")
-    print("Done")
 
 
 def create_json(all_data):
+    """ get all data and create json output file """
     with open('data/data.json', 'w', encoding='utf-8') as f:
         json.dump(all_data, f, ensure_ascii=False, indent=4)
     print("JSON dataset created")
 
 
 def create_csv(all_data):
+    """ get all data and create csv joutput file """
     a = all_data[0]
     with open('data/data.csv', 'a') as f:
         w = csv.DictWriter(f, a.keys())
@@ -83,6 +102,12 @@ def create_csv(all_data):
             w = csv.DictWriter(f, i.keys())
             w.writerow(i)
     print("CSV dataset created")
+
+
+def more_btn(main_div_obj):
+    more_btns = main_div_obj.find_all('a', class_='showClass')
+    for mb in more_btns:
+        mb.get('onclik')
 
 
 def string_handle(s):
@@ -95,11 +120,9 @@ def string_handle(s):
         return s.strip()
 
 
-def single_companies(url: str):
-    base_url = 'https://www.dsebd.org'
-    company_url = base_url+'/'+url
+def single_companies(html_text, company_url):
+    print(company_url)
 
-    html_text = requests.get(company_url).text
     soup = BeautifulSoup(html_text, 'lxml')
 
     main_div = soup.find('div', class_='row')
@@ -205,8 +228,6 @@ def single_companies(url: str):
     else:
         remarks = 'N/A'
 
-    print(company_url)
-
     return {
         "company_name": company_name,
         "security_name": "N/A",
@@ -279,11 +300,13 @@ def single_companies(url: str):
     }
 
 
-def tb_type_company(url: str):
-    base_url = 'https://www.dsebd.org'
-    company_url = base_url+'/'+url
+def tb_type_company(html_text, company_url):
+    # base_url = 'https://www.dsebd.org'
+    # company_url = base_url+'/'+url
 
-    html_text = requests.get(company_url).text
+    # # html_text = requests.get(company_url).text
+    # html_text = asyncio.run(get_url_from_text(url=company_url))
+
     soup = BeautifulSoup(html_text, 'lxml')
 
     main_div = soup.find('div', class_='row')
