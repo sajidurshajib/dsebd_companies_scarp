@@ -8,7 +8,7 @@ import aiohttp
 
 
 def main_scr():
-    html_text = asyncio.run(get_url_from_text('https://www.dsebd.org/company_listing.php'))
+    html_text = asyncio.run(get_text_from_url('https://www.dsebd.org/company_listing.php'))
 
     soup = BeautifulSoup(html_text, 'lxml')
 
@@ -27,44 +27,46 @@ def main_scr():
     all_complanies_link = []
 
     for link in all_link:
-        all_complanies_link.append(link['href'])
+        all_complanies_link.append('https://www.dsebd.org/'+link['href'])
 
-    all_data = asyncio.run(scrap_urls(urls=all_complanies_link))
+    for i in all_complanies_link:
+        print(i)
 
     # json file write
-    create_json(all_data=all_data)
-    create_csv(all_data=all_data)
+    # create_json(all_data=all_data)
+    # create_csv(all_data=all_data)
 
     print("-----------------")
     print("Done")
 
 
-async def fetch(session, url):
-    base_url = 'https://www.dsebd.org'
-    company_url = base_url+'/'+url
+# async def fetch(session, url):
+#     base_url = 'https://www.dsebd.org'
+#     company_url = base_url+'/'+url
 
-    async with session.get(company_url) as response:
-        return await response.text()
-
-
-async def fetch_and_parse(session, url):
-    html = await fetch(session, url)
-
-    if url[0:2] != 'TB':
-        data = single_companies(html_text=html, company_url='https://www.dsebd.org/'+url)
-    else:
-        data = tb_type_company(html_text=html, company_url='https://www.dsebd.org/'+url)
-
-    return data
+#     async with session.get(company_url) as response:
+#         return await response.text()
 
 
-async def scrap_urls(urls):
-    connector = aiohttp.TCPConnector(limit=500)
-    async with aiohttp.ClientSession(connector=connector) as session:
-        return await asyncio.gather(*(fetch_and_parse(session, url) for url in urls))
+# def fetch_and_parse(url):
+#     html = asyncio.run(get_url_from_text(url='https://www.dsebd.org/'+url))
+#     print("hello")
+
+#     if url[0:2] != 'TB':
+#         data = single_companies(html_text=html, company_url='https://www.dsebd.org/'+url)
+#     else:
+#         data = tb_type_company(html_text=html, company_url='https://www.dsebd.org/'+url)
+
+#     return data
 
 
-async def get_url_from_text(url: str):
+# async def scrap_urls(urls):
+#     connector = aiohttp.TCPConnector(limit=500)
+#     async with aiohttp.ClientSession(connector=connector) as session:
+#         return await asyncio.gather(*(fetch_and_parse(session, url) for url in urls))
+
+
+async def get_text_from_url(url: str):
     async with aiohttp.ClientSession() as session:
         response = await session.get(url)
         return await response.text()
