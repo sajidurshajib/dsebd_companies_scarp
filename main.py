@@ -38,8 +38,10 @@ def main_scr():
     print(len(all_complanies_link))
 
     # Async loop
-    loop = asyncio.new_event_loop()
-    loop.run_until_complete(main_scrap(urls=all_complanies_link[0:100]))
+    # loop = asyncio.new_event_loop()
+    # loop.run_until_complete(main_scrap(urls=all_complanies_link))
+
+    mem_main = asyncio.run(main_scrap(urls=all_complanies_link))
     # try:
     #     loop.run_until_complete(main_scrap(urls=all_complanies_link))
     # finally:
@@ -83,8 +85,8 @@ async def scrap(url: str):
 async def main_scrap(urls):
     tasks = []
     for u in urls:
-        task = asyncio.create_task(scrap(url=u))
-        tasks.append(task)
+        # task = asyncio.create_task(scrap(url=u))
+        tasks.append(scrap(url=u))
 
     await asyncio.gather(*tasks)
 
@@ -214,6 +216,11 @@ def single_companies(html_text, company_url):
     sector = string_handle(all_table_body[2].find_all('td')[7].text)
 
     # address
+    print('-----------')
+    address_body = all_table_body[-2].find_all('td')
+    print(len(address_body))
+    print(address_body)
+
     address_head_office = string_handle(all_table_body[-2].find_all('td')[2].text)
     address_factory = string_handle(all_table_body[-2].find_all('td')[4].text)
     contact_phone = string_handle(all_table_body[-2].find_all('td')[6].text)
