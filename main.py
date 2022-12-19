@@ -5,15 +5,23 @@ import os
 import csv
 import asyncio
 import aiohttp
+import time
+from utils import string_handle, create_csv, create_json, dataset_create_with_check
+
+
+all_data = []
 
 
 def main_scr():
-    html_text = asyncio.run(get_text_from_url('https://www.dsebd.org/company_listing.php'))
-
-    soup = BeautifulSoup(html_text, 'lxml')
 
     # data sets exist check
     dataset_create_with_check()
+
+    start_time = time.time()
+
+    html_text = asyncio.run(get_url_from_text('https://www.dsebd.org/company_listing.php'))
+
+    soup = BeautifulSoup(html_text, 'lxml')
 
     # get all list link
     main_div = soup.find('div', class_='al-li')
@@ -27,18 +35,62 @@ def main_scr():
     all_complanies_link = []
 
     for link in all_link:
-        all_complanies_link.append('https://www.dsebd.org/'+link['href'])
+        all_complanies_link.append(link['href'])
 
-    for i in all_complanies_link:
-        print(i)
+    print(len(all_complanies_link))
+
+    # Async loop
+    # loop = asyncio.new_event_loop()
+    # loop.run_until_complete(main_scrap(urls=all_complanies_link))
+
+    mem_main = asyncio.run(main_scrap(urls=all_complanies_link))
+    # try:
+    #     loop.run_until_complete(main_scrap(urls=all_complanies_link))
+    # finally:
+    #     loop.run_until_complete(loop.shutdown_asyncgens())
+    #     loop.close()
+
+    # all_data = asyncio.run(scrap_urls(urls=all_complanies_link))
 
     # json file write
     # create_json(all_data=all_data)
     # create_csv(all_data=all_data)
 
+    end_time = time.time()
+    total_time = end_time - start_time
+
+    create_json(all_data=all_data)
+    create_csv(all_data=all_data)
+
     print("-----------------")
     print("Done")
+    print(f'Scraping time: %.2f seconds.' % total_time)
 
+
+async def scrap(url: str):
+    base_url = 'https://www.dsebd.org'
+    company_url = base_url + '/' + url
+
+    async with aiohttp.ClientSession() as session:
+        async with session.get(company_url) as response:
+
+            html = await response.text()
+
+            if url[0:2] != 'TB':
+                data = single_companies(html_text=html, company_url='https://www.dsebd.org/'+url)
+            else:
+                data = tb_type_company(html_text=html, company_url='https://www.dsebd.org/'+url)
+
+            all_data.append(data)
+
+
+async def main_scrap(urls):
+    tasks = []
+    for u in urls:
+        # task = asyncio.create_task(scrap(url=u))
+        tasks.append(scrap(url=u))
+
+    await asyncio.gather(*tasks)
 
 # async def fetch(session, url):
 #     base_url = 'https://www.dsebd.org'
@@ -48,9 +100,8 @@ def main_scr():
 #         return await response.text()
 
 
-# def fetch_and_parse(url):
-#     html = asyncio.run(get_url_from_text(url='https://www.dsebd.org/'+url))
-#     print("hello")
+# async def fetch_and_parse(session, url):
+#     html = await fetch(session, url)
 
 #     if url[0:2] != 'TB':
 #         data = single_companies(html_text=html, company_url='https://www.dsebd.org/'+url)
@@ -66,60 +117,16 @@ def main_scr():
 #         return await asyncio.gather(*(fetch_and_parse(session, url) for url in urls))
 
 
-async def get_text_from_url(url: str):
+async def get_url_from_text(url: str):
     async with aiohttp.ClientSession() as session:
         response = await session.get(url)
         return await response.text()
-
-
-def dataset_create_with_check():
-    """ data set create with check """
-    if os.path.isfile("data/data.json"):
-        print("Dataset exist, You want to delete previous dataset? (y/Y)")
-        x = input()
-
-        if x == 'y' or x == 'Y':
-            print("")
-            os.remove('data/data.json')
-            os.remove('data/data.csv')
-        else:
-            return -1
-
-
-def create_json(all_data):
-    """ get all data and create json output file """
-    with open('data/data.json', 'w', encoding='utf-8') as f:
-        json.dump(all_data, f, ensure_ascii=False, indent=4)
-    print("JSON dataset created")
-
-
-def create_csv(all_data):
-    """ get all data and create csv joutput file """
-    a = all_data[0]
-    with open('data/data.csv', 'a') as f:
-        w = csv.DictWriter(f, a.keys())
-        w.writeheader()
-    for i in all_data:
-        with open('data/data.csv', 'a') as f:
-            w = csv.DictWriter(f, i.keys())
-            w.writerow(i)
-    print("CSV dataset created")
 
 
 def more_btn(main_div_obj):
     more_btns = main_div_obj.find_all('a', class_='showClass')
     for mb in more_btns:
         mb.get('onclik')
-
-
-def string_handle(s):
-    """ this function handle empty value from a string """
-    if len(s) == 0:
-        return 'N/A'
-    elif s == '-':
-        return 'N/A'
-    else:
-        return s.strip()
 
 
 def single_companies(html_text, company_url):
@@ -162,6 +169,11 @@ def single_companies(html_text, company_url):
     sector = string_handle(all_table_body[2].find_all('td')[7].text)
 
     # address
+    print('-----------')
+    address_body = all_table_body[-2].find_all('td')
+    print(len(address_body))
+    print(address_body)
+
     address_head_office = string_handle(all_table_body[-2].find_all('td')[2].text)
     address_factory = string_handle(all_table_body[-2].find_all('td')[4].text)
     contact_phone = string_handle(all_table_body[-2].find_all('td')[6].text)
@@ -255,6 +267,16 @@ def single_companies(html_text, company_url):
         "market_capitalization": market_capitalization,
         "remaining_maturity": "N/A",
 
+        "issuer": "N/A",
+        "tenure": "N/A",
+        "issue_date": "N/A",
+        "cupon_rate": "N/A",
+        "debut_trading_date_basic": "N/A",
+        "cupon_frequency": "N/A",
+        "maturity_date": "N/A",
+        "security_catagory": "N/A",
+        "electronic_share_basic": "N/A",
+        "year_basis": "N/A",
         "authorized_capital": authorized_capital,
         "debut_trading_date": debut_trading_date,
         "paid_up_capital": paid_up_capital,
@@ -339,6 +361,16 @@ def tb_type_company(html_text, company_url):
     remaining_maturity = string_handle(all_table_body[1].find_all('td')[15].text)
 
     # basic information
+    issuer = string_handle(all_table_body[2].find_all('td')[0].text)
+    tenure = string_handle(all_table_body[2].find_all('td')[6].text)
+    issue_date = string_handle(all_table_body[2].find_all('td')[7].text)
+    cupon_rate = string_handle(all_table_body[2].find_all('td')[8].text)
+    debut_trading_date_basic = string_handle(all_table_body[2].find_all('td')[9].text)
+    cupon_frequency = string_handle(all_table_body[2].find_all('td')[10].text)
+    maturity_date = string_handle(all_table_body[2].find_all('td')[11].text)
+    security_catagory = string_handle(all_table_body[2].find_all('td')[12].text)
+    electronic_share_basic = string_handle(all_table_body[2].find_all('td')[13].text)
+    year_basis = string_handle(all_table_body[2].find_all('td')[14].text)
     type_of_instrument = string_handle(all_table_body[2].find_all('td')[1].text)
     face_par_value = string_handle(all_table_body[2].find_all('td')[4].text)
     market_lot = string_handle(all_table_body[2].find_all('td')[5].text)
@@ -377,6 +409,16 @@ def tb_type_company(html_text, company_url):
         "market_capitalization": market_capitalization,
         "remaining_maturity": remaining_maturity,
 
+        "issuer": issuer,
+        "tenure": tenure,
+        "issue_date": issue_date,
+        "cupon_rate": cupon_rate,
+        "debut_trading_date_basic": debut_trading_date_basic,
+        "cupon_frequency": cupon_frequency,
+        "maturity_date": maturity_date,
+        "security_catagory": security_catagory,
+        "electronic_share_basic": electronic_share_basic,
+        "year_basis": year_basis,
         "authorized_capital": "N/A",
         "debut_trading_date": "N/A",
         "paid_up_capital": "N/A",
