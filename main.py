@@ -1,12 +1,8 @@
 from bs4 import BeautifulSoup
-import requests
-import json
-import os
-import csv
 import asyncio
 import aiohttp
 import time
-from utils import string_handle, create_csv, create_json, dataset_create_with_check
+from utils import string_handle, create_csv, create_json, dataset_create_with_check, market_table, basic_table, address_table
 
 
 all_data = []
@@ -33,28 +29,14 @@ def main_scr():
     all_link = main_div.find_all('a', class_='ab1')
 
     all_complanies_link = []
+    # all_complanies_link.append('displayCompany.php?name=INTECH')
 
     for link in all_link:
         all_complanies_link.append(link['href'])
 
     print(len(all_complanies_link))
 
-    # Async loop
-    # loop = asyncio.new_event_loop()
-    # loop.run_until_complete(main_scrap(urls=all_complanies_link))
-
     mem_main = asyncio.run(main_scrap(urls=all_complanies_link))
-    # try:
-    #     loop.run_until_complete(main_scrap(urls=all_complanies_link))
-    # finally:
-    #     loop.run_until_complete(loop.shutdown_asyncgens())
-    #     loop.close()
-
-    # all_data = asyncio.run(scrap_urls(urls=all_complanies_link))
-
-    # json file write
-    # create_json(all_data=all_data)
-    # create_csv(all_data=all_data)
 
     end_time = time.time()
     total_time = end_time - start_time
@@ -92,30 +74,6 @@ async def main_scrap(urls):
 
     await asyncio.gather(*tasks)
 
-# async def fetch(session, url):
-#     base_url = 'https://www.dsebd.org'
-#     company_url = base_url+'/'+url
-
-#     async with session.get(company_url) as response:
-#         return await response.text()
-
-
-# async def fetch_and_parse(session, url):
-#     html = await fetch(session, url)
-
-#     if url[0:2] != 'TB':
-#         data = single_companies(html_text=html, company_url='https://www.dsebd.org/'+url)
-#     else:
-#         data = tb_type_company(html_text=html, company_url='https://www.dsebd.org/'+url)
-
-#     return data
-
-
-# async def scrap_urls(urls):
-#     connector = aiohttp.TCPConnector(limit=500)
-#     async with aiohttp.ClientSession(connector=connector) as session:
-#         return await asyncio.gather(*(fetch_and_parse(session, url) for url in urls))
-
 
 async def get_url_from_text(url: str):
     async with aiohttp.ClientSession() as session:
@@ -143,47 +101,13 @@ def single_companies(html_text, company_url):
     scrip_code = string_handle(code_obj.find_all('th')[1].text.split(':')[1])
 
     # market table
-    last_trading_price = string_handle(all_table_body[1].find_all('td')[0].text)
-    closing_price = string_handle(all_table_body[1].find_all('td')[1].text)
-    last_update = string_handle(all_table_body[1].find_all('td')[2].text)
-    days_range = string_handle(all_table_body[1].find_all('td')[3].text)
-    change_prev = string_handle(all_table_body[1].find_all('td')[4].text)
-    change_next = string_handle(all_table_body[1].find_all('td')[6].text)
-    days_value = string_handle(all_table_body[1].find_all('td')[5].text)
-    fiftytwo_weeks_moving_range = string_handle(all_table_body[1].find_all('td')[7].text)
-    opening_price = string_handle(all_table_body[1].find_all('td')[8].text)
-    days_volume = string_handle(all_table_body[1].find_all('td')[9].text)
-    adjusted_opening_price = string_handle(all_table_body[1].find_all('td')[10].text)
-    days_trade = string_handle(all_table_body[1].find_all('td')[11].text)
-    yesterday_closing_price = string_handle(all_table_body[1].find_all('td')[12].text)
-    market_capitalization = string_handle(all_table_body[1].find_all('td')[13].text)
+    market_tbl = market_table(table_td=all_table_body[1].find_all('td'), company_type_td=False)
 
     # basic information
-    authorized_capital = string_handle(all_table_body[2].find_all('td')[0].text)
-    debut_trading_date = string_handle(all_table_body[2].find_all('td')[1].text)
-    paid_up_capital = string_handle(all_table_body[2].find_all('td')[2].text)
-    type_of_instrument = string_handle(all_table_body[2].find_all('td')[3].text)
-    face_par_value = string_handle(all_table_body[2].find_all('td')[4].text)
-    market_lot = string_handle(all_table_body[2].find_all('td')[5].text)
-    total_outstanding_security = string_handle(all_table_body[2].find_all('td')[6].text)
-    sector = string_handle(all_table_body[2].find_all('td')[7].text)
+    basic_tbl = basic_table(table_td=all_table_body[2].find_all('td'), company_type_td=False)
 
     # address
-    print('-----------')
-    address_body = all_table_body[-2].find_all('td')
-    print(len(address_body))
-    print(address_body)
-
-    address_head_office = string_handle(all_table_body[-2].find_all('td')[2].text)
-    address_factory = string_handle(all_table_body[-2].find_all('td')[4].text)
-    contact_phone = string_handle(all_table_body[-2].find_all('td')[6].text)
-    fax = string_handle(all_table_body[-2].find_all('td')[8].text)
-    email = string_handle(all_table_body[-2].find_all('td')[10].text)
-    web = string_handle(all_table_body[-2].find_all('td')[12].text)
-    company_secretary_name = string_handle(all_table_body[-2].find_all('td')[14].text)
-    secretary_cell_no = string_handle(all_table_body[-2].find_all('td')[16].text)
-    secretary_telephone_no = string_handle(all_table_body[-2].find_all('td')[18].text)
-    secratary_email = string_handle(all_table_body[-2].find_all('td')[20].text)
+    address_tbl = address_table(table_td=all_table_body[-2].find_all('td'), company_type_td=False)
 
     listing_year = string_handle(all_table_body[9].find_all('td')[1].text)
     market_catagory = string_handle(all_table_body[9].find_all('td')[3].text)
@@ -250,54 +174,9 @@ def single_companies(html_text, company_url):
         "scrip_code": scrip_code,
         "isin": "N/A",
 
-        "last_trading_price": last_trading_price,
-        "last_trading_yield": "N/A",
-        "closing_price": closing_price,
-        "last_update": last_update,
-        "days_range": days_range,
-        "change_prev": change_prev,
-        "change_next": change_next,
-        "days_value": days_value,
-        "fiftytwo_weeks_moving_range": fiftytwo_weeks_moving_range,
-        "opening_price": opening_price,
-        "days_volume": days_volume,
-        "adjusted_opening_price": adjusted_opening_price,
-        "days_trade": days_trade,
-        "yesterday_closing_price": yesterday_closing_price,
-        "market_capitalization": market_capitalization,
-        "remaining_maturity": "N/A",
-
-        "issuer": "N/A",
-        "tenure": "N/A",
-        "issue_date": "N/A",
-        "cupon_rate": "N/A",
-        "debut_trading_date_basic": "N/A",
-        "cupon_frequency": "N/A",
-        "maturity_date": "N/A",
-        "security_catagory": "N/A",
-        "electronic_share_basic": "N/A",
-        "year_basis": "N/A",
-        "authorized_capital": authorized_capital,
-        "debut_trading_date": debut_trading_date,
-        "paid_up_capital": paid_up_capital,
-        "type_of_instrument": type_of_instrument,
-        "face_par_value": face_par_value,
-        "market_lot": market_lot,
-        "total_outstanding_security": total_outstanding_security,
-        "sector": sector,
-
-        "address_head_office": address_head_office,
-        "address_factory": address_factory,
-        "address_issuer": "N/A",
-        "concern_department": "N/A",
-        "contact_phone": contact_phone,
-        "fax": fax,
-        "email": email,
-        "web": web,
-        "company_secretary_name": company_secretary_name,
-        "secretary_cell_no": secretary_cell_no,
-        "secretary_telephone_no": secretary_telephone_no,
-        "secratary_email": secratary_email,
+        **market_tbl,
+        **basic_tbl,
+        **address_tbl,
 
         "listing_year": listing_year,
         "market_catagory": market_catagory,
@@ -343,46 +222,14 @@ def tb_type_company(html_text, company_url):
     isin = string_handle(code_obj[1].find_all('th')[0].text.split(':')[1])
 
     # market information table
-    last_trading_price = string_handle(all_table_body[1].find_all('td')[0].text)
-    last_trading_yield = string_handle(all_table_body[1].find_all('td')[2].text)
-    closing_price = string_handle(all_table_body[1].find_all('td')[1].text)
-    last_update = string_handle(all_table_body[1].find_all('td')[4].text)
-    days_range = string_handle(all_table_body[1].find_all('td')[3].text)
-    change_prev = string_handle(all_table_body[1].find_all('td')[6].text)
-    change_next = string_handle(all_table_body[1].find_all('td')[8].text)
-    days_value = string_handle(all_table_body[1].find_all('td')[5].text)
-    fiftytwo_weeks_moving_range = string_handle(all_table_body[1].find_all('td')[7].text)
-    opening_price = string_handle(all_table_body[1].find_all('td')[10].text)
-    days_volume = string_handle(all_table_body[1].find_all('td')[9].text)
-    adjusted_opening_price = string_handle(all_table_body[1].find_all('td')[12].text)
-    days_trade = string_handle(all_table_body[1].find_all('td')[11].text)
-    yesterday_closing_price = string_handle(all_table_body[1].find_all('td')[14].text)
-    market_capitalization = string_handle(all_table_body[1].find_all('td')[13].text)
-    remaining_maturity = string_handle(all_table_body[1].find_all('td')[15].text)
+    market_tbl = market_table(table_td=all_table_body[1].find_all('td'), company_type_td=True)
 
     # basic information
-    issuer = string_handle(all_table_body[2].find_all('td')[0].text)
-    tenure = string_handle(all_table_body[2].find_all('td')[6].text)
-    issue_date = string_handle(all_table_body[2].find_all('td')[7].text)
-    cupon_rate = string_handle(all_table_body[2].find_all('td')[8].text)
-    debut_trading_date_basic = string_handle(all_table_body[2].find_all('td')[9].text)
-    cupon_frequency = string_handle(all_table_body[2].find_all('td')[10].text)
-    maturity_date = string_handle(all_table_body[2].find_all('td')[11].text)
-    security_catagory = string_handle(all_table_body[2].find_all('td')[12].text)
-    electronic_share_basic = string_handle(all_table_body[2].find_all('td')[13].text)
-    year_basis = string_handle(all_table_body[2].find_all('td')[14].text)
-    type_of_instrument = string_handle(all_table_body[2].find_all('td')[1].text)
-    face_par_value = string_handle(all_table_body[2].find_all('td')[4].text)
-    market_lot = string_handle(all_table_body[2].find_all('td')[5].text)
-    total_outstanding_security = string_handle(all_table_body[2].find_all('td')[2].text)
-    sector = string_handle(all_table_body[2].find_all('td')[3].text)
+    # all_table_body[2].find_all('td')
+    basic_tbl = basic_table(table_td=all_table_body[2].find_all('td'), company_type_td=True)
 
     # address
-    address_issuer = string_handle(all_table_body[-2].find_all('td')[1].text)
-    concern_department = string_handle(all_table_body[-2].find_all('td')[5].text)
-    contact_phone = string_handle(all_table_body[-2].find_all('td')[7].text)
-    email = string_handle(all_table_body[-2].find_all('td')[9].text)
-    web = string_handle(all_table_body[-2].find_all('td')[3].text)
+    address_tbl = address_table(table_td=all_table_body[-2].find_all('td'), company_type_td=True)
 
     return {
         "company_name": "N/A",
@@ -392,54 +239,9 @@ def tb_type_company(html_text, company_url):
         "scrip_code": scrip_code,
         "isin": isin,
 
-        "last_trading_price": last_trading_price,
-        "last_trading_yield": last_trading_yield,
-        "closing_price": closing_price,
-        "last_update": last_update,
-        "days_range": days_range,
-        "change_prev": change_prev,
-        "change_next": change_next,
-        "days_value": days_value,
-        "fiftytwo_weeks_moving_range": fiftytwo_weeks_moving_range,
-        "opening_price": opening_price,
-        "days_volume": days_volume,
-        "adjusted_opening_price": adjusted_opening_price,
-        "days_trade": days_trade,
-        "yesterday_closing_price": yesterday_closing_price,
-        "market_capitalization": market_capitalization,
-        "remaining_maturity": remaining_maturity,
-
-        "issuer": issuer,
-        "tenure": tenure,
-        "issue_date": issue_date,
-        "cupon_rate": cupon_rate,
-        "debut_trading_date_basic": debut_trading_date_basic,
-        "cupon_frequency": cupon_frequency,
-        "maturity_date": maturity_date,
-        "security_catagory": security_catagory,
-        "electronic_share_basic": electronic_share_basic,
-        "year_basis": year_basis,
-        "authorized_capital": "N/A",
-        "debut_trading_date": "N/A",
-        "paid_up_capital": "N/A",
-        "type_of_instrument": type_of_instrument,
-        "face_par_value": face_par_value,
-        "market_lot": market_lot,
-        "total_outstanding_security": total_outstanding_security,
-        "sector": sector,
-
-        "address_head_office": "N/A",
-        "address_factory": "N/A",
-        "address_issuer": address_issuer,
-        "concern_department": concern_department,
-        "contact_phone": contact_phone,
-        "fax": "N/A",
-        "email": email,
-        "web": web,
-        "company_secretary_name": "N/A",
-        "secretary_cell_no": "N/A",
-        "secretary_telephone_no": "N/A",
-        "secratary_email": "N/A",
+        **market_tbl,
+        **basic_tbl,
+        **address_tbl,
 
         "listing_year": "N/A",
         "market_catagory": "N/A",
