@@ -19,6 +19,9 @@ def main_scr():
 
     soup = BeautifulSoup(html_text, 'lxml')
 
+    # loop = asyncio.new_event_loop()
+    # soup = loop.run_in_executor(None, BeautifulSoup, html_text, 'lxml')
+
     # get all list link
     main_div = soup.find('div', class_='al-li')
 
